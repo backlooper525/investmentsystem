@@ -26,6 +26,7 @@ interface Forecasts {
   maturation_date: string | null;
   predicted_price: number;
   method: string | null;
+  entry_mode: string | null;
 }
 
 interface Publishers {

@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import React from 'react';
+import { useRouter } from 'next/navigation';
+import { clientApiFetch } from '@/lib/api';
 
 interface Instrument {
   id: number;
@@ -28,6 +30,7 @@ interface Forecasts {
   maturation_date: string | null;
   predicted_price: number;
   method: string | null;
+  entry_mode: string | null;
 }
 
 interface Publishers {
@@ -51,13 +54,13 @@ const formatPrice = (value: number, currency: string) =>
   }).format(value);
 
 
-function ExpandedForecastRows({ forecasts, currency, publishers }: { forecasts: Forecasts[], currency: string, publishers: Publisher[] }) {
+function ExpandedForecastRows({ forecasts, currency, publishers }: { forecasts: Forecasts[], currency: string, publishers: Publishers[] }) {
   return forecasts.map(f => (
     <tr key={f.id} className="bg-slate-800">
       <td />
       <td className="px-5 py-2 text-slate-400">{formatPrice(f.predicted_price, currency)}</td>
       <td className="px-5 py-2 text-slate-400">{f.maturation_date ?? '—'}</td>
-      <td className="px-5 py-2 text-slate-400">{f.method ?? '—'}</td>
+      <td className="px-5 py-2 text-slate-400">{f.entry_mode ?? '—'}</td>
       <td className="px-5 py-2 text-slate-400">
         {f.publisher_id ? publishers.find(p => p.id === f.publisher_id)?.institution ?? '—' : '—'}
       </td>
@@ -86,8 +89,8 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
   const [expandedForecastId, setExpandedForecastId] = useState<number | null>(null);
   const [methodFilter, setMethodFilter] = useState<'all' | 'sellside' | 'llm' | 'manual'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active'>('all');
-
-
+  const router = useRouter();
+  const today = new Date().toISOString().split('T')[0]; // 'YYYY-MM-DD'
 
   const getMethodType = (method?: string | null) => {
     if (!method) return 'unknown';
@@ -96,8 +99,6 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
     if (m.includes('manual')) return 'manual';
     return 'sellside';
   };
-
-  const today = new Date().toISOString().split('T')[0]; // 'YYYY-MM-DD'
 
   const filteredInstruments = instruments.filter((instrument) => {
     if (statusFilter === 'all') return true;
@@ -110,6 +111,28 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
         f.maturation_date > today
     );
   });
+
+
+
+  const [fetchTicker, setFetchTicker] = useState('');
+  const [isFetching, setIsFetching] = useState(false);
+
+  async function handleFetchTicker() {
+    if (!fetchTicker) return;
+    setIsFetching(true);
+    try {
+      await clientApiFetch(`/fetch/${fetchTicker}`, { method: 'GET' });
+      router.refresh(); // refreshes server component data
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsFetching(false);
+      setFetchTicker('');
+    }
+  }
+
+
+
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-700 bg-slate-900">
@@ -130,11 +153,8 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
             <option value="all">All</option>
             <option value="active">Active</option>
           </select>
-
           <div className="w-3" />
-
-          <p className="text-xs text-slate-400">Method</p>
-
+          <p className="text-xs text-slate-400">Entry mode</p>
           <select
             value={methodFilter}
             onChange={(e) => setMethodFilter(e.target.value as any)}
@@ -145,6 +165,28 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
             <option value="llm">LLM</option>
             <option value="manual">Manual</option>
           </select>
+
+          <div className="w-3" />
+
+          <div className="w-3" />
+          <input
+            type="text"
+            value={fetchTicker}
+            onChange={(e) => setFetchTicker(e.target.value.toUpperCase())}
+            placeholder="TICKER"
+            className="text-sm border border-slate-700 rounded-md px-2 py-1 bg-slate-800 text-slate-300 w-24 font-mono placeholder:text-slate-600"
+          />
+
+          <button
+            onClick={handleFetchTicker}
+            disabled={isFetching || !fetchTicker}
+            className="text-sm border border-slate-700 rounded-md px-3 py-1 bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isFetching ? 'Fetching…' : 'Get Research'}
+          </button>
+
+
+
         </div>
       </div>
 
@@ -154,7 +196,7 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
             <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Ticker</th>
             <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Predicted Price</th>
             <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Maturation</th>
-            <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Method</th>
+            <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Entry</th>
             <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Publisher</th>
             <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Bull • Bear case</th>
             <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Research</th>
@@ -171,7 +213,7 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
             const filteredForecasts = forecasts.filter(f => {
               if (f.instrument_id !== instrument.id) return false;
               if (methodFilter === 'all') return true;
-              return getMethodType(f.method) === methodFilter;
+              return getMethodType(f.entry_mode) === methodFilter;
             });
 
             const sortedForecasts = [...filteredForecasts].sort((a, b) =>
@@ -216,9 +258,9 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
                     {latestForecast?.maturation_date ?? '—'}
                   </td>
 
-                  {/* Method */}
+                  {/* Entry mode */}
                   <td className="px-5 py-3 text-slate-400">
-                    {latestForecast?.method ?? '—'}
+                    {latestForecast?.entry_mode ?? '—'}
                   </td>
 
                   {/* Publisher */}
