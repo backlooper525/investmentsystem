@@ -48,7 +48,6 @@ def create_forecast(
     return service.create(data)
 
 
-<<<<<<< HEAD
 @router.get("", response_model=list[Forecast], summary="List all forecasts")
 def list_forecasts(session: Session = Depends(get_session)) -> list[Forecast]:
     return list(session.exec(select(Forecast)).all())
@@ -65,7 +64,8 @@ def get_forecast(forecast_id: int, session: Session = Depends(get_session)) -> F
 @router.get("/instrument/{instrument_id}", response_model=list[Forecast], summary="Get forecasts for an instrument")
 def list_forecasts_by_instrument(instrument_id: int, session: Session = Depends(get_session)) -> list[Forecast]:
     return list(session.exec(select(Forecast).where(Forecast.instrument_id == instrument_id)).all())
-=======
+
+
 @router.get(
     "/{ticker}",
     status_code=status.HTTP_200_OK,
@@ -121,4 +121,3 @@ def predict(ticker: str, session: Session = Depends(get_session)) -> dict:
         )
 
     return result
->>>>>>> main
