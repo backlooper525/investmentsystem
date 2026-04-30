@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, status, HTTPException
 from __future__ import annotations
+from fastapi import APIRouter, Depends, status, HTTPException
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session  # noqa: TC002
 
@@ -21,7 +21,6 @@ from sqlmodel import Session, select
 from database.session import get_session
 
 router = APIRouter(prefix="/forecasts")
-
 
 @router.get(
     "/settings",
