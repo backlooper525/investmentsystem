@@ -11,8 +11,14 @@ from src.repositories.analytics_repository import analytics_repository
 if TYPE_CHECKING:
     from sqlmodel import Session
 
-BIN_LABELS = [-0.15, -0.10, -0.05, 0.00, 0.05, 0.10, 0.15]
-_CUTOFFS = [-0.10, -0.05, 0.00, 0.05, 0.10, 0.15]
+BIN_LABELS = [
+    -1.00, -0.90, -0.80, -0.70, -0.60, -0.50, -0.40, -0.30, -0.20, -0.10,
+     0.00,  0.10,  0.20,  0.30,  0.40,  0.50,  0.60,  0.70,  0.80,  0.90,  1.00,
+]
+_CUTOFFS = [
+    -0.90, -0.80, -0.70, -0.60, -0.50, -0.40, -0.30, -0.20, -0.10,  0.00,
+     0.10,  0.20,  0.30,  0.40,  0.50,  0.60,  0.70,  0.80,  0.90,  1.00,
+]
 
 
 class DistributionResult(BaseModel):
@@ -26,9 +32,9 @@ class DistributionResult(BaseModel):
 
 
 def _bin(errors: list[float]) -> list[int]:
-    counts = [0] * 7
+    counts = [0] * len(_CUTOFFS)
     for e in errors:
-        bucket = sum(1 for c in _CUTOFFS if e >= c)
+        bucket = min(sum(1 for c in _CUTOFFS if e >= c), len(_CUTOFFS) - 1)
         counts[bucket] += 1
     return counts
 

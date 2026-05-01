@@ -105,31 +105,33 @@ def publisher(db_session: Session) -> Publisher:
 
 class TestBin:
     def test_empty_list_returns_all_zeros(self) -> None:
-        assert _bin([]) == [0, 0, 0, 0, 0, 0, 0]
+        assert _bin([]) == [0] * 20
 
-    def test_value_below_minus_010_lands_in_bucket_0(self) -> None:
-        assert _bin([-0.20]) == [1, 0, 0, 0, 0, 0, 0]
+    def test_value_below_first_cutoff_lands_in_bucket_0(self) -> None:
+        assert _bin([-0.95])[0] == 1
+        assert sum(_bin([-0.95])) == 1
 
-    def test_value_exactly_minus_010_lands_in_bucket_1(self) -> None:
-        assert _bin([-0.10]) == [0, 1, 0, 0, 0, 0, 0]
+    def test_value_exactly_minus_090_lands_in_bucket_1(self) -> None:
+        assert _bin([-0.90])[1] == 1
 
-    def test_value_exactly_0_lands_in_bucket_3(self) -> None:
-        assert _bin([0.00]) == [0, 0, 0, 1, 0, 0, 0]
+    def test_value_exactly_0_lands_in_bucket_10(self) -> None:
+        assert _bin([0.00])[10] == 1
 
-    def test_value_exactly_015_lands_in_last_bucket(self) -> None:
-        assert _bin([0.15]) == [0, 0, 0, 0, 0, 0, 1]
+    def test_value_above_100_clamped_to_last_bucket(self) -> None:
+        assert _bin([1.50])[19] == 1
+        assert sum(_bin([1.50])) == 1
 
-    def test_value_above_015_lands_in_last_bucket(self) -> None:
-        assert _bin([0.50]) == [0, 0, 0, 0, 0, 0, 1]
+    def test_value_exactly_100_clamped_to_last_bucket(self) -> None:
+        assert _bin([1.00])[19] == 1
 
     def test_counts_sum_to_input_length(self) -> None:
-        errors = [-0.20, -0.07, -0.03, 0.01, 0.06, 0.12, 0.18]
+        errors = [-0.95, -0.50, -0.20, 0.00, 0.20, 0.50, 0.95]
         assert sum(_bin(errors)) == len(errors)
 
-    def test_symmetric_spread_fills_all_buckets(self) -> None:
-        errors = [-0.20, -0.10, -0.05, 0.00, 0.05, 0.10, 0.15]
+    def test_each_value_lands_in_distinct_bucket(self) -> None:
+        errors = [-0.95, -0.50, -0.20, 0.00, 0.20, 0.50, 0.95]
         counts = _bin(errors)
-        assert all(c == 1 for c in counts)
+        assert all(c <= 1 for c in counts)
 
 
 # ── Service integration tests ─────────────────────────────────────────────────
@@ -138,8 +140,8 @@ class TestBin:
 class TestAnalyticsServiceNoFilter:
     def test_no_reports_returns_zero_bins(self, db_session: Session) -> None:
         result = AnalyticsService().get_distribution(db_session)
-        assert result.all == [0, 0, 0, 0, 0, 0, 0]
-        assert result.selected == [0, 0, 0, 0, 0, 0, 0]
+        assert result.all == [0] * 20
+        assert result.selected == [0] * 20
 
     def test_no_reports_returns_null_means(self, db_session: Session) -> None:
         result = AnalyticsService().get_distribution(db_session)
@@ -162,7 +164,10 @@ class TestAnalyticsServiceNoFilter:
 
     def test_bins_field_is_correct_labels(self, db_session: Session) -> None:
         result = AnalyticsService().get_distribution(db_session)
-        assert result.bins == [-0.15, -0.10, -0.05, 0.00, 0.05, 0.10, 0.15]
+        assert result.bins == [
+            -1.00, -0.90, -0.80, -0.70, -0.60, -0.50, -0.40, -0.30, -0.20, -0.10,
+             0.00,  0.10,  0.20,  0.30,  0.40,  0.50,  0.60,  0.70,  0.80,  0.90,  1.00,
+        ]
 
     def test_mean_all_computed_correctly(
         self, db_session: Session, aapl_id: int, publisher: Publisher
@@ -197,8 +202,8 @@ class TestAnalyticsServiceTickerFilter:
         make_report(db_session, fa.id, 0.05)
         make_report(db_session, fb.id, -0.20)
         result = AnalyticsService().get_distribution(db_session, ticker="AAPL")
-        # selected contains only AAPL error (0.05 → bucket 4)
-        assert result.selected[4] == 1
+        # selected contains only AAPL error (0.05 → bucket 10)
+        assert result.selected[10] == 1
         assert sum(result.selected) == 1
 
     def test_ticker_filter_all_contains_both_instruments(
@@ -230,7 +235,7 @@ class TestAnalyticsServiceTickerFilter:
         f = make_forecast(db_session, aapl_id, publisher.id)
         make_report(db_session, f.id, 0.05)
         result = AnalyticsService().get_distribution(db_session, ticker="ZZZZ")
-        assert result.selected == [0, 0, 0, 0, 0, 0, 0]
+        assert result.selected == [0] * 20
         assert result.mean_selected is None
 
     def test_p_value_computed_with_sufficient_data(
@@ -288,7 +293,7 @@ class TestAnalyticsServicePublisherFilter:
         make_report(db_session, f2.id, -0.20)
         result = AnalyticsService().get_distribution(db_session, publisher_id=p1.id)
         assert sum(result.selected) == 1
-        assert result.selected[4] == 1
+        assert result.selected[10] == 1
 
     def test_unknown_publisher_returns_empty_selected(
         self, db_session: Session, aapl_id: int, publisher: Publisher
@@ -296,7 +301,7 @@ class TestAnalyticsServicePublisherFilter:
         f = make_forecast(db_session, aapl_id, publisher.id)
         make_report(db_session, f.id, 0.05)
         result = AnalyticsService().get_distribution(db_session, publisher_id=99999)
-        assert result.selected == [0, 0, 0, 0, 0, 0, 0]
+        assert result.selected == [0] * 20
 
 
 # ── Route tests ───────────────────────────────────────────────────────────────
@@ -322,7 +327,10 @@ class TestAnalyticsRoute:
 
     def test_bins_field_correct(self, client: object) -> None:
         data = client.get("/analytics/distribution").json()
-        assert data["bins"] == [-0.15, -0.10, -0.05, 0.00, 0.05, 0.10, 0.15]
+        assert data["bins"] == [
+            -1.00, -0.90, -0.80, -0.70, -0.60, -0.50, -0.40, -0.30, -0.20, -0.10,
+             0.00,  0.10,  0.20,  0.30,  0.40,  0.50,  0.60,  0.70,  0.80,  0.90,  1.00,
+        ]
 
     def test_both_ticker_and_publisher_id_returns_422(self, client: object) -> None:
         response = client.get("/analytics/distribution?ticker=AAPL&publisher_id=1")
@@ -336,12 +344,12 @@ class TestAnalyticsRoute:
         response = client.get("/analytics/distribution?publisher_id=1")
         assert response.status_code == 200
 
-    def test_bin_counts_length_is_7(self, client: object) -> None:
+    def test_bin_counts_length_is_20(self, client: object) -> None:
         data = client.get("/analytics/distribution").json()
-        assert len(data["all"]) == 7
-        assert len(data["selected"]) == 7
+        assert len(data["all"]) == 20
+        assert len(data["selected"]) == 20
 
     def test_empty_db_returns_zero_counts(self, client: object) -> None:
         data = client.get("/analytics/distribution").json()
-        assert data["all"] == [0, 0, 0, 0, 0, 0, 0]
-        assert data["selected"] == [0, 0, 0, 0, 0, 0, 0]
+        assert data["all"] == [0] * 20
+        assert data["selected"] == [0] * 20
