@@ -49,6 +49,7 @@ const formatPrice = (value: number, currency: string) =>
   new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,
+    currency,
     minimumFractionDigits: 0,
     maximumFractionDigits: 4,
   }).format(value);
@@ -131,6 +132,25 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
     }
   }
 
+  async function handleFetchForecasts() {
+    if (!fetchTicker) return;
+
+    setIsFetching(true);
+    try {
+      await clientApiFetch(`/forecasts/${fetchTicker}`, {
+        method: 'GET',
+      });
+
+      router.refresh(); // reload DB data
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsFetching(false);
+      setFetchTicker('');
+    }
+  }
+
+
 
 
 
@@ -178,6 +198,14 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
           />
 
           <button
+            onClick={handleFetchForecasts}
+            disabled={isFetching || !fetchTicker}
+            className="text-sm border border-slate-700 rounded-md px-3 py-1 bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isFetching ? 'Fetching…' : 'Get Targets'}
+          </button>
+
+          <button
             onClick={handleFetchTicker}
             disabled={isFetching || !fetchTicker}
             className="text-sm border border-slate-700 rounded-md px-3 py-1 bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -210,22 +238,53 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
               s.search_subjects?.includes(instrument.ticker)
             );
 
+
+
             const filteredForecasts = forecasts.filter(f => {
               if (f.instrument_id !== instrument.id) return false;
               if (methodFilter === 'all') return true;
               return getMethodType(f.entry_mode) === methodFilter;
             });
 
-            const sortedForecasts = [...filteredForecasts].sort((a, b) =>
+            // keep only latest forecast per publisher
+            const latestByPublisher = Object.values(
+              filteredForecasts.reduce((acc, f) => {
+                const key = f.publisher_id ?? 'no-publisher';
+
+                if (!acc[key]) {
+                  acc[key] = f;
+                } else {
+                  const existingDate = acc[key].prediction_date ?? '';
+                  const newDate = f.prediction_date ?? '';
+
+                  if (newDate > existingDate) {
+                    acc[key] = f;
+                  }
+                }
+
+                return acc;
+              }, {} as Record<string | number, Forecasts>)
+            );
+
+            // now sort those
+            const sortedForecasts = latestByPublisher.sort((a, b) =>
               (b.prediction_date ?? '').localeCompare(a.prediction_date ?? '')
             );
+
+
 
             const latestForecast = sortedForecasts[0];
             const restForecasts = sortedForecasts.slice(1);
 
             const prices = sortedForecasts.map(f => f.predicted_price);
             const bullPrice = prices.length ? Math.max(...prices) : null;
-            const bearPrice = prices.length ? Math.min(...prices) : null;
+
+            //const bearPrice = prices.length ? Math.min(...prices) : null;
+            const nonZeroPrices = prices.filter(p => p > 0);
+            const bearPrice = nonZeroPrices.length
+              ? Math.min(...nonZeroPrices)
+              : (prices.length ? Math.min(...prices) : null);
+
 
             const isForecastExpanded = expandedForecastId === instrument.id;
             const isSourceExpanded = expandedSourceId === instrument.id;

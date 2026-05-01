@@ -60,7 +60,7 @@ class Forecast(SQLModel, table=True):
     publisher: Optional["Publisher"] = Relationship(back_populates="forecasts")
     reports: list["Report"] = Relationship(back_populates="forecast")
     forecast_sources: list["ForecastSource"] = Relationship(back_populates="forecast")
-<<<<<<< HEAD
+    aggregate_components: list["AggregateComponent"] = Relationship(back_populates="forecast")
 
 
 class ForecastCreate(SQLModel):
@@ -139,6 +139,3 @@ class ForecastRead(SQLModel):
 class ForecastOptionsRead(SQLModel):
     estimate_types: list[str]
     scenarios: list[str]
-=======
-    aggregate_components: list["AggregateComponent"] = Relationship(back_populates="forecast")
->>>>>>> 6ba6d72 (add forecast_aggregates and aggregate_components tables)
