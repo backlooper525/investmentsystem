@@ -48,6 +48,10 @@ class Forecast(SQLModel, table=True):
     )
     currency: str = Field(max_length=10)
 
+    spot_price_at_prediction: Decimal | None = Field(
+        default=None, sa_column=Column(Numeric(12, 4), nullable=True)
+    )
+
     conviction: int | None = Field(default=None, sa_column=Column(SmallInteger, nullable=True))
     conviction_source: str | None = Field(default=None, max_length=10)
     method: str | None = Field(default=None, max_length=100)
