@@ -50,12 +50,21 @@ interface Publishers {
   institution: string | null;
 }
 
+interface Price {
+  instrument_id: number | null;
+  price_date: string | null;     // ISO date (YYYY-MM-DD)
+  price: number;
+  currency: string | null;
+  data_source: string | null;
+}
+
 interface Props {
   instruments: Instrument[];
   sources: Source[];
   forecasts: Forecasts[];
   forecast_ag: Forecast_aggregates[];
   publishers: Publishers[];
+  lastclose: Price[];
 }
 
 const formatPrice = (value: number, currency: string) =>
@@ -110,7 +119,7 @@ function ExpandedSourceRows({ sources }: { sources: Source[] }) {
   ));
 }
 
-export default function InstrumentsTable({ instruments, sources, forecasts, publishers, forecast_ag }: Props) {
+export default function InstrumentsTable({ instruments, sources, forecasts, publishers, forecast_ag, lastclose }: Props) {
   const [expandedSourceId, setExpandedSourceId] = useState<number | null>(null);
   const [expandedForecastId, setExpandedForecastId] = useState<number | null>(null);
   const [methodFilter, setMethodFilter] = useState<'all' | 'sellside' | 'llm'| 'scenario' | 'manual'| 'average'>('all');
@@ -179,30 +188,48 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
   }
 
   async function handlePredictForecasts() {
-  if (!fetchTicker) return;
+    if (!fetchTicker) return;
 
-  setIsFetching(true);
-  try {
-    await clientApiFetch(`/forecasts/predict/${fetchTicker}`, {
-      method: 'POST',
-    });
+    setIsFetching(true);
+    try {
+      await clientApiFetch(`/forecasts/predict/${fetchTicker}`, {
+        method: 'POST',
+      });
 
-    router.refresh();
-  } catch (err) {
-    console.error(err);
-  } finally {
-    setIsFetching(false);
-    setFetchTicker('');
+      router.refresh();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsFetching(false);
+      setFetchTicker('');
+    }
   }
-}
+
+
+  async function handleLastClosePrice() {
+
+    setIsFetching(true);
+    try {
+      await clientApiFetch(`/ingest/lastprices`, {
+        method: 'POST',
+      });
+
+      router.refresh();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsFetching(false);
+      setFetchTicker('');
+    }
+  }
 
 
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-700 bg-slate-900">
+    <div className="overflow-auto max-h-[600px] rounded-xl border border-slate-700 bg-slate-900">
 
       {/* Header + filters */}
-      <div className="border-b border-slate-700 px-5 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="sticky top-0 z-20 bg-slate-900 border-b border-slate-700">
+        <div className="px-5 py-4 flex items-center justify-between">
           <div>
             <h2 className="text-sm font-semibold text-white">Instruments</h2>
             <p className="mt-0.5 text-xs text-slate-400">{filteredInstruments.length} tracked</p>
@@ -264,6 +291,17 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
             className="text-sm border border-slate-700 rounded-md px-3 py-1 bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isFetching ? 'Running…' : 'Predict'}
+          </button>
+
+          <div className="w-3" />
+          <div className="w-3" />
+          <div className="w-3" />
+
+          <button
+            onClick={handleLastClosePrice}
+            className="text-sm border border-slate-700 rounded-md px-3 py-1 bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isFetching ? 'Running…' : 'Latest prices'}
           </button>
 
 
@@ -377,6 +415,16 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
                   <td className="px-5 py-3">
                     <div className="font-mono text-blue-400">{instrument.ticker}</div>
                     <div className="text-[10px] text-slate-500">{instrument.name}</div>
+                    <div className="text-[10px] text-slate-400">
+                      {(() => {
+                        const latest = lastclose
+                          .filter(p => p.instrument_id === instrument.id)
+                          .sort((a, b) => b.price_date.localeCompare(a.price_date))[0];
+                        return latest ? (
+                          <span><span className="text-slate-600">Last close: </span>{formatPrice(latest.price, instrument.currency)}</span>
+                        ) : '—';
+                      })()}
+                    </div>
                   </td>
 
                   {/* Price */}

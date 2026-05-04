@@ -46,22 +46,31 @@ interface Publishers {
   institution: string | null;
 }
 
+interface Price {
+  instrument_id: number | null;
+  price_date: string | null;
+  price: number;
+  currency: string | null;
+  data_source: string | null;
+}
+
 export default async function DashboardPage() {
   //const instruments = await apiFetch<Instrument[]>('/instruments');
 
-  const [instruments, sources, forecasts, forecastAggregates, publishers] = await Promise.all([
+  const [instruments, sources, forecasts, forecastAggregates, publishers, prices] = await Promise.all([
     apiFetch<Instrument[]>('/instruments'),
     apiFetch<Source[]>('/sources'),
     apiFetch<Forecasts[]>('/forecasts'),
     apiFetch<Forecast_aggregates[]>('/forecasts/aggregates/all'),
     apiFetch<Publishers[]>('/publishers'),
+    apiFetch<Price[]>('/ingest/prices/all'),
   ]);
 
 
   return (
     <div>
       <h1 className="mb-6 text-2xl font-semibold text-slate-800">Dashboard</h1>
-      <InstrumentsTable instruments={instruments} sources={sources} forecasts={forecasts} forecast_ag={forecastAggregates} publishers={publishers} />
+      <InstrumentsTable instruments={instruments} sources={sources} forecasts={forecasts} forecast_ag={forecastAggregates} publishers={publishers} lastclose={prices} />
     </div>
   )
 }
