@@ -27,20 +27,33 @@ interface Forecasts {
   predicted_price: number;
   method: string | null;
   entry_mode: string | null;
+  estimate_type: string | null;
+}
+
+interface Forecast_aggregates {
+  id: number;
+  instrument_id: number | null;
+  publisher_id: number | null;
+  prediction_date: string | null;
+  maturation_date: string | null;
+  predicted_price: number;
+  estimate_type: string | null;
 }
 
 interface Publishers {
   id: number;
   title: string | null;
+  institution: string | null;
 }
 
 export default async function DashboardPage() {
   //const instruments = await apiFetch<Instrument[]>('/instruments');
 
-  const [instruments, sources, forecasts, publishers] = await Promise.all([
+  const [instruments, sources, forecasts, forecastAggregates, publishers] = await Promise.all([
     apiFetch<Instrument[]>('/instruments'),
     apiFetch<Source[]>('/sources'),
     apiFetch<Forecasts[]>('/forecasts'),
+    apiFetch<Forecast_aggregates[]>('/forecasts/aggregates/all'),
     apiFetch<Publishers[]>('/publishers'),
   ]);
 
@@ -48,7 +61,7 @@ export default async function DashboardPage() {
   return (
     <div>
       <h1 className="mb-6 text-2xl font-semibold text-slate-800">Dashboard</h1>
-      <InstrumentsTable instruments={instruments} sources={sources} forecasts={forecasts} publishers={publishers} />
+      <InstrumentsTable instruments={instruments} sources={sources} forecasts={forecasts} forecast_ag={forecastAggregates} publishers={publishers} />
     </div>
   )
 }

@@ -11,6 +11,9 @@ from src.models.forecast import (
     ForecastOptionsRead,
     ForecastRead,
 )
+
+from src.models.forecast_aggregate import ForecastAggregate
+
 from src.repositories.forecast_repository import forecast_repository
 from src.repositories.instrument_repository import instrument_repository
 from src.repositories.publisher_repository import publisher_repository
@@ -96,7 +99,8 @@ def get_forecasts(ticker: str, session: Session = Depends(get_session)):
             maturation_date=t["maturation_date"],
             predicted_price=t["price_target"],
             currency=instrument.currency,
-            entry_mode="sellside"
+            entry_mode="sellside",
+            estimate_type = "source_point_estimate"
 
         )
         session.add(forecast)
@@ -106,6 +110,14 @@ def get_forecasts(ticker: str, session: Session = Depends(get_session)):
 
     return {"ticker": ticker, "forecasts_saved": saved_forecasts}
 
+
+#----aggregates
+
+@router.get("/aggregates/all", response_model=list[ForecastAggregate], summary="List all aggregate forecasts")
+def list_agforecasts(session: Session = Depends(get_session)) -> list[ForecastAggregate]:
+    return list(session.exec(select(ForecastAggregate)).all())
+
+#change to @router.post
 @router.post(
     "/predict/{ticker}",
     status_code=status.HTTP_200_OK,

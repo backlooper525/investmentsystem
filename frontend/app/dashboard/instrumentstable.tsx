@@ -31,17 +31,30 @@ interface Forecasts {
   predicted_price: number;
   method: string | null;
   entry_mode: string | null;
+  estimate_type: string | null;
+}
+
+interface Forecast_aggregates {
+  id: number;
+  instrument_id: number | null;
+  publisher_id: number | null;
+  prediction_date: string | null;
+  maturation_date: string | null;
+  predicted_price: number;
+  estimate_type: string | null;
 }
 
 interface Publishers {
   id: number;
   title: string | null;
+  institution: string | null;
 }
 
 interface Props {
   instruments: Instrument[];
   sources: Source[];
   forecasts: Forecasts[];
+  forecast_ag: Forecast_aggregates[];
   publishers: Publishers[];
 }
 
@@ -55,19 +68,31 @@ const formatPrice = (value: number, currency: string) =>
   }).format(value);
 
 
-function ExpandedForecastRows({ forecasts, currency, publishers }: { forecasts: Forecasts[], currency: string, publishers: Publishers[] }) {
-  return forecasts.map(f => (
-    <tr key={f.id} className="bg-slate-800">
-      <td />
-      <td className="px-5 py-2 text-slate-400">{formatPrice(f.predicted_price, currency)}</td>
-      <td className="px-5 py-2 text-slate-400">{f.maturation_date ?? '—'}</td>
-      <td className="px-5 py-2 text-slate-400">{f.entry_mode ?? '—'}</td>
-      <td className="px-5 py-2 text-slate-400">
-        {f.publisher_id ? publishers.find(p => p.id === f.publisher_id)?.institution ?? '—' : '—'}
-      </td>
-      <td /><td /><td />
-    </tr>
-  ));
+function ExpandedForecastRows({ forecasts, currency, publishers }: {
+  forecasts: Forecasts[],
+  currency: string,
+  publishers: Publishers[],
+}) {
+  return (
+    <>
+      {forecasts.map(f => (
+        <tr key={`forecast-${f.id}`} className="bg-slate-800">
+          <td />
+          <td className="px-5 py-2 text-slate-400">{formatPrice(f.predicted_price, currency)}</td>
+          <td className="px-5 py-2 text-slate-400">{f.maturation_date ?? '—'}</td>
+          <td className="px-5 py-2 text-slate-400">{f.estimate_type ?? '—'}</td>
+          <td className="px-5 py-2 text-slate-400">
+            {f.entry_mode === 'aggregate'
+              ? <span className="text-yellow-500 italic">aggregate</span>
+              : f.publisher_id
+                ? publishers.find(p => p.id === f.publisher_id)?.institution ?? '—'
+                : '—'}
+          </td>
+          <td /><td /><td />
+        </tr>
+      ))}
+    </>
+  );
 }
 
 function ExpandedSourceRows({ sources }: { sources: Source[] }) {
@@ -85,10 +110,10 @@ function ExpandedSourceRows({ sources }: { sources: Source[] }) {
   ));
 }
 
-export default function InstrumentsTable({ instruments, sources, forecasts, publishers }: Props) {
+export default function InstrumentsTable({ instruments, sources, forecasts, publishers, forecast_ag }: Props) {
   const [expandedSourceId, setExpandedSourceId] = useState<number | null>(null);
   const [expandedForecastId, setExpandedForecastId] = useState<number | null>(null);
-  const [methodFilter, setMethodFilter] = useState<'all' | 'sellside' | 'llm' | 'manual'>('all');
+  const [methodFilter, setMethodFilter] = useState<'all' | 'sellside' | 'llm'| 'scenario' | 'manual'| 'average'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active'>('all');
   const router = useRouter();
   const today = new Date().toISOString().split('T')[0]; // 'YYYY-MM-DD'
@@ -98,7 +123,10 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
     const m = method.toLowerCase();
     if (m.includes('llm')) return 'llm';
     if (m.includes('manual')) return 'manual';
-    return 'sellside';
+    if (m.includes('source_point_estimate')) return 'sellside';
+    if (m.includes('source_scenario_estimate')) return 'scenario';
+    if (m.includes('averaged_point_estimate')) return 'average';
+    return "-";
   };
 
   const filteredInstruments = instruments.filter((instrument) => {
@@ -150,8 +178,23 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
     }
   }
 
+  async function handlePredictForecasts() {
+  if (!fetchTicker) return;
 
+  setIsFetching(true);
+  try {
+    await clientApiFetch(`/forecasts/predict/${fetchTicker}`, {
+      method: 'POST',
+    });
 
+    router.refresh();
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setIsFetching(false);
+    setFetchTicker('');
+  }
+}
 
 
   return (
@@ -174,7 +217,7 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
             <option value="active">Active</option>
           </select>
           <div className="w-3" />
-          <p className="text-xs text-slate-400">Entry mode</p>
+          <p className="text-xs text-slate-400">Estimate type</p>
           <select
             value={methodFilter}
             onChange={(e) => setMethodFilter(e.target.value as any)}
@@ -183,7 +226,9 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
             <option value="all">All</option>
             <option value="sellside">Sellside</option>
             <option value="llm">LLM</option>
+            <option value="scenario">Scenario</option>
             <option value="manual">Manual</option>
+            <option value="average">Average</option>
           </select>
 
           <div className="w-3" />
@@ -213,6 +258,14 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
             {isFetching ? 'Fetching…' : 'Get Research'}
           </button>
 
+          <button
+            onClick={handlePredictForecasts}
+            disabled={isFetching || !fetchTicker}
+            className="text-sm border border-slate-700 rounded-md px-3 py-1 bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isFetching ? 'Running…' : 'Predict'}
+          </button>
+
 
 
         </div>
@@ -224,7 +277,7 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
             <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Ticker</th>
             <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Predicted Price</th>
             <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Maturation</th>
-            <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Entry</th>
+            <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Estimate type</th>
             <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Publisher</th>
             <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Bull • Bear case</th>
             <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Research</th>
@@ -243,7 +296,7 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
             const filteredForecasts = forecasts.filter(f => {
               if (f.instrument_id !== instrument.id) return false;
               if (methodFilter === 'all') return true;
-              return getMethodType(f.entry_mode) === methodFilter;
+              return getMethodType(f.estimate_type) === methodFilter;
             });
 
             // keep only latest forecast per publisher
@@ -266,15 +319,42 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
               }, {} as Record<string | number, Forecasts>)
             );
 
-            // now sort those
+
+
+            //sort
             const sortedForecasts = latestByPublisher.sort((a, b) =>
               (b.prediction_date ?? '').localeCompare(a.prediction_date ?? '')
             );
 
+            const instrumentAggregates = forecast_ag.filter(a =>
+              a.instrument_id === instrument.id &&
+              (methodFilter === 'all' || getMethodType(a.estimate_type) === methodFilter)
+            );
 
 
-            const latestForecast = sortedForecasts[0];
-            const restForecasts = sortedForecasts.slice(1);
+            // combine forecasts and aggregates into one list
+            const combined = [
+              ...sortedForecasts,
+              ...instrumentAggregates.map(a => ({
+                id: a.id + 100000, // avoid id collision
+                instrument_id: a.instrument_id,
+                publisher_id: null,
+                prediction_date: a.prediction_date,
+                maturation_date: a.maturation_date,
+                predicted_price: a.predicted_price,
+                method: null,
+                entry_mode: 'aggregate',
+                estimate_type: a.estimate_type,
+              } as Forecasts))
+            ];
+
+            const latestForecast = combined[0];
+            const restForecasts = combined.slice(1);
+
+
+
+
+
 
             const prices = sortedForecasts.map(f => f.predicted_price);
             const bullPrice = prices.length ? Math.max(...prices) : null;
@@ -307,7 +387,7 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
                         onClick={() => setExpandedForecastId(isForecastExpanded ? null : instrument.id)}
                         className="ml-2 text-xs text-blue-400 hover:text-blue-300"
                       >
-                        {isForecastExpanded ? 'hide' : `+${restForecasts.length}`}
+                        {isForecastExpanded ? 'hide' : `+${restForecasts.length }`}
                       </button>
                     )}
                   </td>
@@ -319,14 +399,16 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
 
                   {/* Entry mode */}
                   <td className="px-5 py-3 text-slate-400">
-                    {latestForecast?.entry_mode ?? '—'}
+                    {latestForecast?.estimate_type ?? '—'}
                   </td>
 
                   {/* Publisher */}
                   <td className="px-5 py-3 text-slate-400">
-                    {latestForecast?.publisher_id
-                      ? publishers.find(p => p.id === latestForecast.publisher_id)?.institution ?? '—'
-                      : '—'}
+                    {latestForecast?.entry_mode === 'aggregate'
+                      ? <span className="text-yellow-500 italic">aggregate</span>
+                      : latestForecast?.publisher_id
+                        ? publishers.find(p => p.id === latestForecast.publisher_id)?.institution ?? '—'
+                        : '—'}
                   </td>
 
                   {/* Bull / Bear */}
@@ -364,11 +446,17 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
                   </td>
                 </tr>
 
-                  {/* Expanded forecasts */}
-                  {isForecastExpanded && <ExpandedForecastRows forecasts={restForecasts} currency={instrument.currency} publishers={publishers}/>}
 
-                  {/* Expanded sources */}
-                  {isSourceExpanded && <ExpandedSourceRows sources={instrumentSources.slice(1)} />}
+                {/* Expanded forecasts */}
+                {isForecastExpanded && <ExpandedForecastRows
+                  forecasts={restForecasts}
+                  currency={instrument.currency}
+                  publishers={publishers}
+
+                />}
+
+                {/* Expanded sources */}
+                {isSourceExpanded && <ExpandedSourceRows sources={instrumentSources.slice(1)} />}
 
               </React.Fragment>
             );
