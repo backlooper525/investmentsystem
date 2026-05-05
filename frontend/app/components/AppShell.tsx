@@ -7,10 +7,12 @@ import Footer from './Footer';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 import useNotify from '../hooks/useNotify';
+import { usePathname } from 'next/navigation';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { snackbar, notify } = useNotify();
+  const pathname = usePathname();
 
   return (
     <div className="flex h-screen flex-col">

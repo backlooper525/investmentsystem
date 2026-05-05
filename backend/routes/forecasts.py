@@ -19,7 +19,6 @@ from src.repositories.instrument_repository import instrument_repository
 from src.repositories.publisher_repository import publisher_repository
 from src.services.forecast_service import ForecastService, get_forecast_service
 from src.services.price_prediction_service import price_prediction_service
-from src.services.yfinance_service import YFinanceService
 
 from sqlmodel import Session, select
 from database.session import get_session
@@ -108,7 +107,8 @@ def get_forecasts(ticker: str, session: Session = Depends(get_session)):
 
     session.commit()
 
-    return {"ticker": ticker, "forecasts_saved": saved_forecasts}
+    return forecast_repository.get_by_instrument(session, instrument.id)
+
 
 
 #----aggregates
