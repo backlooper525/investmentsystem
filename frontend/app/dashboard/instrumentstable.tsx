@@ -223,6 +223,8 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
     }
   }
 
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const selectedInst = instruments.find((i) => i?.ticker === fetchTicker);
 
   return (
     <div className="overflow-auto max-h-[600px] rounded-xl border border-slate-700 bg-slate-900">
@@ -259,20 +261,44 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
           </select>
 
           <div className="w-3" />
-
           <div className="w-3" />
-          <input
-            type="text"
-            value={fetchTicker}
-            onChange={(e) => setFetchTicker(e.target.value.toUpperCase())}
-            placeholder="TICKER"
-            className="text-sm border border-slate-700 rounded-md px-2 py-1 bg-slate-800 text-slate-300 w-24 font-mono placeholder:text-slate-600"
-          />
+
+
+          <div className="relative w-40">
+            <button
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              className={`text-sm border border-slate-700 rounded-md px-2 py-1 bg-slate-800 w-full font-mono text-left
+                ${!selectedInst ? "text-slate-500" : "text-slate-300"}`}
+            >
+              {selectedInst ? selectedInst.ticker.toUpperCase() : "TICKER"}
+            </button>
+            {dropdownOpen && (
+              <ul className="absolute z-10 mt-1 w-56 bg-slate-800 border border-slate-700 rounded-md shadow-lg max-h-60 overflow-auto">
+                {instruments
+                  .filter((i) => i?.ticker)
+                  .map((inst) => (
+                    <li
+                      key={inst.id}
+                      onClick={() => {
+                        setFetchTicker(inst.ticker.toUpperCase());
+                        setDropdownOpen(false);
+                      }}
+                      className={`px-3 py-1.5 text-sm font-mono cursor-pointer hover:bg-slate-700 flex gap-3
+                        ${inst.ticker === fetchTicker ? "text-white" : "text-slate-100"}`}
+                    >
+                      <span>{inst.ticker.toUpperCase()}</span>
+                      <span className="text-slate-500">{inst.name}</span>
+                    </li>
+                  ))}
+              </ul>
+            )}
+          </div>
+
 
           <button
             onClick={handleFetchForecasts}
             disabled={isFetching || !fetchTicker}
-            className="text-sm border border-slate-700 rounded-md px-3 py-1 bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-sm flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isFetching ? 'Fetching…' : 'Get Targets'}
           </button>
@@ -280,7 +306,7 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
           <button
             onClick={handleFetchTicker}
             disabled={isFetching || !fetchTicker}
-            className="text-sm border border-slate-700 rounded-md px-3 py-1 bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-sm flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isFetching ? 'Fetching…' : 'Get Research'}
           </button>
@@ -288,7 +314,7 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
           <button
             onClick={handlePredictForecasts}
             disabled={isFetching || !fetchTicker}
-            className="text-sm border border-slate-700 rounded-md px-3 py-1 bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-sm flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isFetching ? 'Running…' : 'Predict'}
           </button>
@@ -299,7 +325,7 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
 
           <button
             onClick={handleLastClosePrice}
-            className="text-sm border border-slate-700 rounded-md px-3 py-1 bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-sm flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isFetching ? 'Running…' : 'Latest prices'}
           </button>

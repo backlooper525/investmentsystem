@@ -66,10 +66,15 @@ export default async function DashboardPage() {
     apiFetch<Price[]>('/ingest/prices/all'),
   ]);
 
-
   return (
-    <div>
-      <h1 className="mb-6 text-2xl font-semibold text-slate-800">Dashboard</h1>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold text-white">Dashboard</h1>
+        <p className="mt-1 text-sm text-slate-400">
+          Pull and view latest predictions.
+        </p>
+      </div>
+
       <InstrumentsTable instruments={instruments} sources={sources} forecasts={forecasts} forecast_ag={forecastAggregates} publishers={publishers} lastclose={prices} />
     </div>
   )
