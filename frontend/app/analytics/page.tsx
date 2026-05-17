@@ -3,6 +3,8 @@ import type { Instrument, InstrumentClass } from '@/types/instruments';
 import type { Publisher } from '@/types/publishers';
 import AnalyticsFilters from './AnalyticsFilters';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AnalyticsPage() {
   const [instrumentClasses, instruments, publishers] = await Promise.all([
     apiFetch<InstrumentClass[]>('/instrument-classes'),

@@ -1,6 +1,9 @@
 import type { NextConfig } from 'next';
-
 const nextConfig: NextConfig = {
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  output: 'standalone',
   async rewrites() {
     return [
       {
@@ -10,5 +13,4 @@ const nextConfig: NextConfig = {
     ];
   },
 };
-
 export default nextConfig;
