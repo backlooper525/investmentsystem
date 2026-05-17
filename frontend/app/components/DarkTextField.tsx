@@ -20,5 +20,5 @@ const inputSx: SxProps<Theme> = {
 };
 
 export default function DarkTextField({ sx, size = 'small', ...props }: TextFieldProps) {
-  return <TextField size={size} sx={{ ...inputSx, ...sx }} {...props} />;
+  return <TextField size={size} sx={{ ...inputSx, ...sx } as any} {...props} />;
 }
