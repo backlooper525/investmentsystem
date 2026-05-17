@@ -27,9 +27,14 @@ services:
         condition: service_healthy
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        - BACKEND_URL=http://investment-backend:8000
     container_name: investment-frontend
     env_file: .env
+    environment:
+      - BACKEND_URL=http://investment-backend:8000
     ports:
       - "3000:3000"
     depends_on:
