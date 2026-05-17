@@ -3,7 +3,6 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  output: 'standalone',
   async rewrites() {
     return [
       {
