@@ -1,6 +1,8 @@
 import { apiFetch } from '@/lib/api';
 import InstrumentsTable from './instrumentstable';
 
+export const dynamic = 'force-dynamic';
+
 interface Instrument {
   id: number;
   ticker: string;
