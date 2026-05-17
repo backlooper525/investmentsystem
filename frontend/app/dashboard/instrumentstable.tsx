@@ -444,7 +444,7 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
                       {(() => {
                         const latest = lastclose
                           .filter(p => p.instrument_id === instrument.id)
-                          .sort((a, b) => b.price_date.localeCompare(a.price_date))[0];
+                          .sort((a, b) => (b.price_date ?? '').localeCompare(a.price_date ?? ''))[0];
                         return latest ? (
                           <span><span className="text-slate-600">Last close: </span>{formatPrice(latest.price, instrument.currency)}</span>
                         ) : '—';
