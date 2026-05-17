@@ -20,5 +20,5 @@ const sliderSx: SxProps<Theme> = {
 };
 
 export default function DarkSlider({ sx, ...props }: SliderProps) {
-  return <Slider {...props} sx={{ ...sliderSx, ...sx }} />;
+  return <Slider {...props} sx={{ ...sliderSx, ...sx } as any} />;
 }
