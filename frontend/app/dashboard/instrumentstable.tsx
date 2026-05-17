@@ -71,7 +71,6 @@ const formatPrice = (value: number, currency: string) =>
   new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,
-    currency,
     minimumFractionDigits: 0,
     maximumFractionDigits: 4,
   }).format(value);
