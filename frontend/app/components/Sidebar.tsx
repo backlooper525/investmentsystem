@@ -12,6 +12,7 @@ import {
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/new-entry', label: 'New Entry', icon: PlusCircle },
+  { href: '/review-queue', label: 'Review Queue', icon: ClipboardList },
   { href: '/analytics', label: 'Analytics', icon: BarChart2 },
 ];
 
