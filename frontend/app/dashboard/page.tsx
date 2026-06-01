@@ -71,7 +71,7 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-white">Dashboard</h1>
+        <h1 className="text-2xl font-semibold text-white">Dash</h1>
         <p className="mt-1 text-sm text-slate-400">
           Pull and view latest predictions.
         </p>
