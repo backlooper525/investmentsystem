@@ -1,66 +1,73 @@
-The Investment Prediction & Learning System is a full-stack analytics platform designed to collect, track, and evaluate investment price predictions over time.
+# Investment Prediction & Learning System
 
-The core objective is to identify which information sources, prediction methods, and analytical approaches consistently produce accurate investment forecasts. The system records predictions before outcomes are known, automatically collects realised market prices at prediction maturity, and compares forecasted versus actual results to create a growing database of prediction performance.
+A platform for tracking investment ideas and their price predictions and measuring whether they actually come true.
 
-Unlike traditional backtesting approaches, the system focuses exclusively on forward-looking predictions with immutable historical records, eliminating hindsight bias and allowing systematic evaluation of forecasting accuracy.
+The idea is to record a prediction before the outcome is known, collect the real market price when the forecast period ends, and build up a track record over time. The goal is to find out which sources, methods, and analysts are genuinely worth listening to - not in hindsight, but measured against predictions made under uncertainty.
 
-Key Features
-Prediction Collection
-Manual forecast entry through a web interface
-Automated collection of analyst price targets and investment research
-Full provenance tracking for each prediction, including source, method, and forecast horizon
-Data Processing Pipeline
-Automated search and retrieval of investment research
-Information extraction and synthesis using Large Language Models (LLMs)
-Scheduled processing and data collection workflows
-Realised Outcome Tracking
-Automatic retrieval of market prices at forecast maturity dates
-Persistent storage of forecast and realised outcomes
-Historical prediction performance database
-Analytics & Evaluation
-Comparison of forecasted and realised prices
-Source-level performance analysis
-Method and horizon-based evaluation
-Dashboard-driven reporting and exploration
-Technology Stack
-Backend
-FastAPI
-Python
-Frontend
-Next.js
-Database
-MySQL
-AI Services
-OpenAI
-Anthropic
-Google Gemini
-External Data Sources
-Yahoo Finance (yfinance)
-Google Search (Serper API)
-Deployment
-Docker
-Docker Compose
-System Architecture
+---
 
-The MVP consists of the following modules:
+## Features
 
-Search & Fetch Module
-Audit Module
-Extraction & Synthesis Module
-Forecast Entry Module
-Realised Data Collection Module
-Scheduler
-Comparison & Analytics Module
-Authentication & User Management
-Dashboard & Analytics Interface
+**Prediction intake**
+- Manual entry via web UI
+- Automated collection of analyst price targets and research reports
+- Every prediction is tagged with its source, method, and forecast horizon
 
-All modules operate within a containerized environment and share a common relational database designed to maintain prediction provenance and data integrity.
+**Data pipeline**
+- Automated research retrieval and search
+- LLM-assisted extraction and synthesis of investment content
+- Scheduled jobs handle the ongoing collection and processing
 
-Project Goal
+**Outcome tracking**
+- Market prices fetched automatically at forecast maturity
+- Forecasted vs. realised results stored persistently
+- Nothing gets rewritten - the historical record is immutable
 
-The primary goal of the MVP is to build a reliable prediction tracking system capable of accumulating high-quality forecast–outcome pairs over time.
+**Analytics**
+- Forecast accuracy comparisons
+- Performance breakdowns by source, method, and time horizon
+- Dashboard for exploring results
 
-By systematically measuring prediction accuracy across sources, methods, and asset classes, the platform aims to support evidence-based evaluation of investment forecasting approaches and create a foundation for future analytical and machine learning enhancements.
+---
+
+## Stack
+
+| | |
+|---|---|
+| Backend | FastAPI + Python |
+| Frontend | Next.js |
+| Database | MySQL |
+| AI | OpenAI, Anthropic, Google Gemini |
+| Market data | yfinance |
+| Search | Serper API |
+| Infra | Docker + Docker Compose |
+
+---
+
+## Architecture
+
+The MVP is built around eight modules:
+
+- **Search & Fetch** - pulls investment research and analyst targets
+- **Audit** - validates incoming data before it enters the pipeline
+- **Extraction & Synthesis** - LLM-based parsing of research content
+- **Forecast Entry** - handles both manual and automated prediction intake
+- **Realised Data Collection** - fetches market prices at maturity
+- **Scheduler** - keeps everything running on time
+- **Comparison & Analytics** - where forecasts meet outcomes
+- **Dashboard** - exploration and reporting UI
+
+Everything runs in Docker and shares a single relational database that's designed around maintaining a clean chain of provenance from prediction to outcome.
+
+---
+
+## Goal
+
+The MVP exists to gather and track investment ideas, accumulate a dataset of forecast-outcome pairs that's actually worth analysing.
+
+Most prediction tracking either suffers from survivorship bias, gets retrofitted to historical data, or never gets systematically measured at all. This is an attempt to do it properly — record first, measure later, no adjustments.
+
+Once there's enough data, the plan is to use it to evaluate forecasting approaches more rigorously and explore where machine learning might add something meaningful.
 
 Dashboard page
 <img width="2496" height="639" alt="image" src="https://github.com/user-attachments/assets/b16cc9f8-c3c3-4741-8149-80620b598671" />
