@@ -4,6 +4,7 @@ import { useState } from 'react';
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { clientApiFetch } from '@/lib/api';
+import PriceTargetTooltipChart from "./PriceTargetTooltipChart";
 
 interface Instrument {
   id: number;
@@ -121,6 +122,8 @@ function ExpandedSourceRows({ sources }: { sources: Source[] }) {
 export default function InstrumentsTable({ instruments, sources, forecasts, publishers, forecast_ag, lastclose }: Props) {
   const [expandedSourceId, setExpandedSourceId] = useState<number | null>(null);
   const [expandedForecastId, setExpandedForecastId] = useState<number | null>(null);
+  const [openChartId, setOpenChartId] = useState<number | null>(null);
+
   const [methodFilter, setMethodFilter] = useState<'all' | 'sellside' | 'llm'| 'scenario' | 'manual'| 'average'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active'>('all');
   const router = useRouter();
@@ -337,7 +340,7 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-slate-700 bg-slate-800">
-            <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Ticker</th>
+            <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">T</th>
             <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Predicted Price</th>
             <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Maturation</th>
             <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Estimate type</th>
@@ -349,6 +352,10 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
 
         <tbody className="divide-y divide-slate-700">
           {filteredInstruments.map((instrument) => {
+
+            const latestClose = lastclose.find(
+              p => p.instrument_id === instrument.id
+            );
 
             const instrumentSources = sources.filter(s =>
               s.search_subjects?.includes(instrument.ticker)
@@ -487,17 +494,52 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
                   {/* Bull / Bear */}
                   <td className="px-5 py-3">
                     {bullPrice !== null && bearPrice !== null ? (
-                      <div className="flex items-center gap-1">
-                        <span className="text-green-400">
-                          {formatPrice(bullPrice, instrument.currency)}
-                        </span>
-                        <span className="text-slate-600">•</span>
-                        <span className="text-red-400">
-                          {formatPrice(bearPrice, instrument.currency)}
-                        </span>
+                      <div className="relative flex items-center gap-3">
+                        <div className="flex items-center gap-1">
+                          <span className="text-green-400">
+                            {formatPrice(bullPrice, instrument.currency)}
+                          </span>
+                          <span className="text-slate-600">•</span>
+                          <span className="text-red-400">
+                            {formatPrice(bearPrice, instrument.currency)}
+                          </span>
+                        </div>
+
+                        <button
+                          onClick={() =>
+                            setOpenChartId(
+                              openChartId === instrument.id ? null : instrument.id
+                            )
+                          }
+                          className="text-xs text-blue-400 hover:text-blue-300 hover:underline"
+                        >
+                          Chart
+                        </button>
+
+                        {openChartId === instrument.id && (
+                          <div className="absolute left-0 top-6 z-50">
+                            <div className="relative rounded-lg border border-slate-700 bg-slate-900 p-3 shadow-xl">
+                              <button
+                                onClick={() => setOpenChartId(null)}
+                                className="absolute right-2 top-2 text-slate-400 hover:text-white"
+                              >
+                                ×
+                              </button>
+
+                              <PriceTargetTooltipChart
+                                forecasts={sortedForecasts}
+                                publishers={publishers}
+                                currentPrice={latestClose?.price}
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    ) : '—'}
+                    ) : (
+                      "—"
+                    )}
                   </td>
+
 
                   {/* Research */}
                   <td className="px-5 py-3 text-slate-400">

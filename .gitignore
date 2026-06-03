@@ -26,3 +26,9 @@ backgrouund research/
 # IDE config
 .project
 .pydevproject
+
+# Node modules
+node_modules/
+.next/
+dist/
+build/
