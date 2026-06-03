@@ -1,6 +1,5 @@
 {
   "dependencies": {
-    "@radix-ui/react-hover-card": "^1.1.15",
     "recharts": "^3.8.1"
   }
 }
