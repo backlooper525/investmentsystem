@@ -19,6 +19,19 @@ class Instrument(SQLModel, table=True):
     currency: str = Field(max_length=10)
 
     instrument_class: Optional["InstrumentClass"] = Relationship(back_populates="instruments")
-    prices: list["Price"] = Relationship(back_populates="instrument")
-    forecasts: list["Forecast"] = Relationship(back_populates="instrument")
-    forecast_aggregates: list["ForecastAggregate"] = Relationship(back_populates="instrument")
+    prices: list["Price"] = Relationship(back_populates="instrument", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
+
+
+    forecasts: list["Forecast"] = Relationship(
+        back_populates="instrument",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )
+
+    forecast_aggregates: list["ForecastAggregate"] = Relationship(
+        back_populates="instrument",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )
+
+
+class InstrumentCreate(SQLModel):
+    ticker: str

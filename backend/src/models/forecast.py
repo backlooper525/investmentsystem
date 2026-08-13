@@ -62,9 +62,17 @@ class Forecast(SQLModel, table=True):
 
     instrument: Optional["Instrument"] = Relationship(back_populates="forecasts")
     publisher: Optional["Publisher"] = Relationship(back_populates="forecasts")
-    reports: list["Report"] = Relationship(back_populates="forecast")
+    #reports: list["Report"] = Relationship(back_populates="forecast")
+    reports: list["Report"] = Relationship(
+        back_populates="forecast",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )
     forecast_sources: list["ForecastSource"] = Relationship(back_populates="forecast")
-    aggregate_components: list["AggregateComponent"] = Relationship(back_populates="forecast")
+    #aggregate_components: list["AggregateComponent"] = Relationship(back_populates="forecast")
+    aggregate_components: list["AggregateComponent"] = Relationship(
+        back_populates="forecast",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )
 
 
 class ForecastCreate(SQLModel):

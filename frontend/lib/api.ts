@@ -48,7 +48,19 @@ async function doFetch<T>(base: string, path: string, options?: RequestInit): Pr
     throw new ApiError(res.status, message, detail);
   }
 
-  return res.json() as Promise<T>;
+  //return res.json() as Promise<T>;
+
+  const text = await res.text();
+
+  if (!text) {
+    return undefined as T;
+  }
+
+  return JSON.parse(text) as T;
+
+
+
+
 }
 
 /**

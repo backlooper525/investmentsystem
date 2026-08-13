@@ -11,21 +11,5 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  seb-postgres:
-    image: postgres:17
-    container_name: seb-db
-    environment:
-      POSTGRES_USER: seb
-      POSTGRES_PASSWORD: seb
-      POSTGRES_DB: seb_db
-    ports:
-      - "5433:5432"
-    volumes:
-      - seb_pgdata:/var/lib/postgresql/data
-
 volumes:
   postgres_data:
-  seb_pgdata:
-  
-
-

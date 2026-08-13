@@ -26,5 +26,17 @@ class InstrumentRepository:
         session.commit()
         return True
 
+    def create(self, session: Session, instrument_data: InstrumentCreate) -> Instrument:
+        instrument = Instrument(
+            ticker=instrument_data.ticker.upper(),
+            name=instrument_data.ticker,
+            currency="USD",
+            class_id=1
+        )
+
+        session.add(instrument)
+        session.commit()
+        session.refresh(instrument)
+        return instrument
 
 instrument_repository = InstrumentRepository()

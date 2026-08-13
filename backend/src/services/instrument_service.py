@@ -2,7 +2,7 @@ from fastapi import Depends
 from sqlmodel import Session
 
 from database.session import get_session
-from src.models.instrument import Instrument
+from src.models.instrument import Instrument, InstrumentCreate
 from src.repositories.instrument_repository import instrument_repository
 
 
@@ -18,6 +18,12 @@ class InstrumentService:
 
     def delete(self, instrument_id: int) -> bool:
         return instrument_repository.delete(self.session, instrument_id)
+
+    #def create(self, instrument: Instrument) -> Instrument:
+    #    return instrument_repository.create(self.session, instrument)
+
+    def create(self, instrument_data: InstrumentCreate) -> Instrument:
+        return instrument_repository.create(self.session, instrument_data)
 
 
 def get_instrument_service(

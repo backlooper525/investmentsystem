@@ -39,4 +39,8 @@ class ForecastAggregate(SQLModel, table=True):
     source_count: int = Field(sa_column=Column(SmallInteger, nullable=False))
 
     instrument: Optional["Instrument"] = Relationship(back_populates="forecast_aggregates")
-    components: list["AggregateComponent"] = Relationship(back_populates="aggregate")
+    #components: list["AggregateComponent"] = Relationship(back_populates="aggregate")
+    components: list["AggregateComponent"] = Relationship(
+        back_populates="aggregate",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )

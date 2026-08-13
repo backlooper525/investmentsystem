@@ -36,9 +36,9 @@ export default function PriceTargetTooltipChart({
   currentPrice,
 }: Props) {
   const data = forecasts
-  .filter((f) => f.predicted_price > 0 && f.maturation_date)
+  .filter((f) => f.predicted_price > 0 && f.prediction_date)
   .map((f) => ({
-    x: new Date(f.maturation_date!).getTime(),
+    x: new Date(f.prediction_date!).getTime(),
     y: f.predicted_price,
     prediction_date: f.prediction_date,
     publisher:
@@ -66,7 +66,7 @@ export default function PriceTargetTooltipChart({
 
 
   return (
-    <div className="w-[600px] h-[320px]">
+    <div className="w-[800px] h-[520px]">
       <ResponsiveContainer width="100%" height="100%">
         <ScatterChart
           margin={{
@@ -81,6 +81,7 @@ export default function PriceTargetTooltipChart({
             type="number"
             domain={["dataMin", "dataMax"]}
             scale="time"
+            ticks={[...new Set(data.map(d => d.x))]}
             tickFormatter={(v) =>
                 new Date(v).toISOString().slice(0, 10)
             }
@@ -121,9 +122,7 @@ export default function PriceTargetTooltipChart({
                     Target: {d.y}
                   </div>
 
-                  <div className="text-slate-400">
-                    Matures: {new Date(d.x).toISOString().slice(0, 10)}
-                  </div>
+
 
                   <div className="text-slate-400">
                     Predicted: {d.prediction_date}

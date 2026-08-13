@@ -124,6 +124,9 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
   const [expandedForecastId, setExpandedForecastId] = useState<number | null>(null);
   const [openChartId, setOpenChartId] = useState<number | null>(null);
 
+  const [newTicker, setNewTicker] = useState("");
+  const [isAdding, setIsAdding] = useState(false);
+
   const [methodFilter, setMethodFilter] = useState<'all' | 'sellside' | 'llm'| 'scenario' | 'manual'| 'average'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active'>('all');
   const router = useRouter();
@@ -209,7 +212,6 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
 
 
   async function handleLastClosePrice() {
-
     setIsFetching(true);
     try {
       await clientApiFetch(`/ingest/lastprices`, {
@@ -225,11 +227,49 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
     }
   }
 
+// ADD instrument
+  async function handleAddInstrument() {
+  if (!newTicker) return;
+    setIsAdding(true);
+    try {
+      await clientApiFetch("/instruments", {
+        method: "POST",
+        body: JSON.stringify({
+          ticker: newTicker,
+        }),
+      });
+
+      setNewTicker("");
+      router.refresh(); // reload table data
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsAdding(false);
+    }
+  }
+
+  // DELETE instrument
+  async function handleDeleteInstrument(id: number) {
+    if (!confirm("Remove this ticker from the watchlist?")) return;
+
+    try {
+      await clientApiFetch(`/instruments/${id}`, {
+        method: "DELETE",
+      });
+
+      router.refresh();
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+
+
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const selectedInst = instruments.find((i) => i?.ticker === fetchTicker);
 
   return (
-    <div className="overflow-auto max-h-[600px] rounded-xl border border-slate-700 bg-slate-900">
+    <div className="overflow-auto h-[calc(100vh-180px)] rounded-xl border border-slate-700 bg-slate-900">
 
       {/* Header + filters */}
       <div className="sticky top-0 z-20 bg-slate-900 border-b border-slate-700">
@@ -247,6 +287,32 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
             <option value="all">All</option>
             <option value="active">Active</option>
           </select>
+
+
+
+
+          <div className="flex gap-2 items-center">
+            <input
+              value={newTicker}
+              onChange={(e) => setNewTicker(e.target.value.toUpperCase())}
+              placeholder="Add ticker"
+              className="text-sm px-2 py-1 rounded bg-slate-800 border border-slate-700 text-white"
+            />
+
+            <button
+              onClick={handleAddInstrument}
+              disabled={isAdding || !newTicker}
+              className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-500 disabled:opacity-50"
+            >
+              +
+            </button>
+          </div>
+
+
+
+
+
+
           <div className="w-3" />
           <p className="text-xs text-slate-400">Estimate type</p>
           <select
@@ -302,7 +368,7 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
             disabled={isFetching || !fetchTicker}
             className="text-sm flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isFetching ? 'Fetching…' : 'Get Targets'}
+            {isFetching ? 'Fetching…' : 'Targets'}
           </button>
 
           <button
@@ -310,7 +376,7 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
             disabled={isFetching || !fetchTicker}
             className="text-sm flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isFetching ? 'Fetching…' : 'Get Research'}
+            {isFetching ? 'Fetching…' : 'Research'}
           </button>
 
           <button
@@ -329,7 +395,7 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
             onClick={handleLastClosePrice}
             className="text-sm flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isFetching ? 'Running…' : 'Latest prices'}
+            {isFetching ? 'Running…' : 'Prices'}
           </button>
 
 
@@ -341,12 +407,13 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
         <thead>
           <tr className="border-b border-slate-700 bg-slate-800">
             <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">T</th>
-            <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Predicted Price</th>
-            <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Maturation</th>
+            <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Price target</th>
+            <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Date</th>
             <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Estimate type</th>
             <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Publisher</th>
             <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Bull • Bear case</th>
             <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Research</th>
+            <th className="px-5 py-3"></th>
           </tr>
         </thead>
 
@@ -472,9 +539,9 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
                     )}
                   </td>
 
-                  {/* Maturation */}
+                  {/* Date */}
                   <td className="px-5 py-3 text-slate-400">
-                    {latestForecast?.maturation_date ?? '—'}
+                    {latestForecast?.prediction_date ?? '—'}
                   </td>
 
                   {/* Entry mode */}
@@ -515,9 +582,8 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
                         >
                           Chart
                         </button>
-
                         {openChartId === instrument.id && (
-                          <div className="absolute left-0 top-6 z-50">
+                          <div className="absolute right-0 top-6 z-50">
                             <div className="relative rounded-lg border border-slate-700 bg-slate-900 p-3 shadow-xl">
                               <button
                                 onClick={() => setOpenChartId(null)}
@@ -559,6 +625,18 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
                       </button>
                     )}
                   </td>
+
+
+                  <td className="px-5 py-3">
+                    <button
+                      onClick={() => handleDeleteInstrument(instrument.id)}
+                      className="text-red-400 hover:text-red-300"
+                      title="Delete"
+                    >
+                      ✕
+                    </button>
+                  </td>
+
                 </tr>
 
 

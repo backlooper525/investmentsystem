@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from src.models.instrument import Instrument
+from src.models.instrument import Instrument, InstrumentCreate
 from src.services.instrument_service import InstrumentService, get_instrument_service
 
 router = APIRouter(prefix="/instruments")
 
 
-@router.get("/", response_model=list[Instrument], summary="List all instruments")
+@router.get("", response_model=list[Instrument], summary="List all instruments")
 def list_instruments(
     service: InstrumentService = Depends(get_instrument_service),
 ) -> list[Instrument]:
@@ -34,3 +34,16 @@ def delete_instrument(
 ) -> None:
     if not service.delete(instrument_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Instrument not found")
+
+
+@router.post(
+    "",
+    response_model=Instrument,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create instrument (add to watchlist)",
+)
+def create_instrument(
+    instrument: InstrumentCreate,
+    service: InstrumentService = Depends(get_instrument_service),
+) -> Instrument:
+    return service.create(instrument)
