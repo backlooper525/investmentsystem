@@ -36,7 +36,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       <aside
         className={`
-          fixed inset-y-0 left-0 z-50 w-60 bg-slate-900 flex flex-col overflow-y-auto
+          fixed inset-y-0 left-0 z-50 w-40 bg-slate-900 flex flex-col overflow-y-auto
           transition-transform duration-300 ease-in-out
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
           md:static md:translate-x-0 md:shrink-0

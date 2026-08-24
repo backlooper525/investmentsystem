@@ -48,6 +48,7 @@ class YFinanceService:
                             "price_target": float(price_target),
                             "to_grade": row.get("ToGrade"),
                             "from_grade": row.get("FromGrade"),
+                            "action": row.get("Action"),
                         }
                     )
             except Exception as e:

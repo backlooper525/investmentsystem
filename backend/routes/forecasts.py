@@ -100,7 +100,10 @@ def get_forecasts(ticker: str, session: Session = Depends(get_session)):
             predicted_price=t["price_target"],
             currency=instrument.currency,
             entry_mode="sellside",
-            estimate_type = "source_point_estimate"
+            estimate_type = "source_point_estimate",
+            rating = t["to_grade"],
+            prev_rating = t["from_grade"],
+            action = t["action"],
 
         )
         session.add(forecast)

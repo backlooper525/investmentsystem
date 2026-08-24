@@ -52,6 +52,10 @@ class Forecast(SQLModel, table=True):
         default=None, sa_column=Column(Numeric(12, 4), nullable=True)
     )
 
+    rating: str | None = Field(default=None, max_length=20)
+    prev_rating: str | None = Field(default=None, max_length=20)
+    action: str | None = Field(default=None, max_length=20)
+
     conviction: int | None = Field(default=None, sa_column=Column(SmallInteger, nullable=True))
     conviction_source: str | None = Field(default=None, max_length=10)
     method: str | None = Field(default=None, max_length=100)
@@ -92,6 +96,10 @@ class ForecastCreate(SQLModel):
     method: str | None = Field(default=None, max_length=100)
     entry_mode: str = Field(max_length=20)
     estimate_type: str = Field(max_length=25)
+    rating: str | None = Field(default=None, max_length=20)
+    prev_rating: str | None = Field(default=None, max_length=20)
+    action: str | None = Field(default=None, max_length=20)
+
 
     @field_validator("maturation_date")
     @classmethod
@@ -146,7 +154,9 @@ class ForecastRead(SQLModel):
     estimate_type: str | None
     method: str | None
     entry_mode: str | None
-
+    rating: str | None
+    prev_rating: str | None
+    action: str | None
 
 class ForecastOptionsRead(SQLModel):
     estimate_types: list[str]

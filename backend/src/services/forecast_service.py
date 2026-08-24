@@ -38,6 +38,10 @@ class ForecastService:
             entry_mode=data.entry_mode,
             estimate_type=data.estimate_type,
             scenario=data.scenario,
+            rating=data.rating,
+            prev_rating=data.prev_rating,
+            action=data.action,
+
         )
 
         created = forecast_repository.create(self.session, forecast)

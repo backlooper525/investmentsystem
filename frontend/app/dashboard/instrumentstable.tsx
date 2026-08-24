@@ -33,6 +33,9 @@ interface Forecasts {
   method: string | null;
   entry_mode: string | null;
   estimate_type: string | null;
+  rating: string | null;
+  prev_rating: string | null;
+  action: string | null;
 }
 
 interface Forecast_aggregates {
@@ -89,7 +92,9 @@ function ExpandedForecastRows({ forecasts, currency, publishers }: {
           <td />
           <td className="px-5 py-2 text-slate-400">{formatPrice(f.predicted_price, currency)}</td>
           <td className="px-5 py-2 text-slate-400">{f.maturation_date ?? '—'}</td>
-          <td className="px-5 py-2 text-slate-400">{f.estimate_type ?? '—'}</td>
+          <td className="px-5 py-2 text-slate-400">{f.rating ?? '—'}</td>
+          <td className="px-5 py-2 text-slate-400">{f.action ?? '—'}</td>
+
           <td className="px-5 py-2 text-slate-400">
             {f.entry_mode === 'aggregate'
               ? <span className="text-yellow-500 italic">aggregate</span>
@@ -107,7 +112,7 @@ function ExpandedForecastRows({ forecasts, currency, publishers }: {
 function ExpandedSourceRows({ sources }: { sources: Source[] }) {
   return sources.map(s => (
     <tr key={s.id} className="bg-slate-800">
-      <td /><td /><td /><td /><td /><td />
+      <td /><td /><td /><td /><td /><td /><td />
       <td className="px-5 py-2 text-slate-400">
         {s.file_path ? (
           <a href={s.file_path} target="_blank" className="hover:underline text-blue-400">
@@ -174,12 +179,12 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
     }
   }
 
-  async function handleFetchForecasts() {
-    if (!fetchTicker) return;
+  async function handleFetchForecasts(ticker) {
+    if (!ticker) return;
 
     setIsFetching(true);
     try {
-      await clientApiFetch(`/forecasts/${fetchTicker}`, {
+      await clientApiFetch(`/forecasts/${ticker}`, {
         method: 'GET',
       });
 
@@ -239,6 +244,8 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
         }),
       });
 
+      await handleFetchForecasts(newTicker);
+
       setNewTicker("");
       router.refresh(); // reload table data
     } catch (err) {
@@ -269,7 +276,7 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
   const selectedInst = instruments.find((i) => i?.ticker === fetchTicker);
 
   return (
-    <div className="overflow-auto h-[calc(100vh-180px)] rounded-xl border border-slate-700 bg-slate-900">
+    <div className="h-[calc(95vh-220px)] overflow-y-auto rounded-xl border border-slate-700 bg-slate-900">
 
       {/* Header + filters */}
       <div className="sticky top-0 z-20 bg-slate-900 border-b border-slate-700">
@@ -364,7 +371,7 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
 
 
           <button
-            onClick={handleFetchForecasts}
+            onClick={() => handleFetchForecasts(fetchTicker)}
             disabled={isFetching || !fetchTicker}
             className="text-sm flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -404,12 +411,14 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
       </div>
 
       <table className="w-full text-sm">
-        <thead>
+        <thead className="sticky top-[70px] z-10 bg-slate-800">
           <tr className="border-b border-slate-700 bg-slate-800">
-            <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">T</th>
+            <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Stock
+            </th>
             <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Price target</th>
             <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Date</th>
-            <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Estimate type</th>
+            <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Rating</th>
+            <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Action</th>
             <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Publisher</th>
             <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Bull • Bear case</th>
             <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Research</th>
@@ -481,7 +490,7 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
                 predicted_price: a.predicted_price,
                 method: null,
                 entry_mode: 'aggregate',
-                estimate_type: a.estimate_type,
+                rating: a.rating,
               } as Forecasts))
             ];
 
@@ -544,10 +553,16 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
                     {latestForecast?.prediction_date ?? '—'}
                   </td>
 
-                  {/* Entry mode */}
+                  {/* Rating */}
                   <td className="px-5 py-3 text-slate-400">
-                    {latestForecast?.estimate_type ?? '—'}
+                    {latestForecast?.rating ?? '—'}
                   </td>
+
+                  {/* Action */}
+                  <td className="px-5 py-3 text-slate-400">
+                    {latestForecast?.action ?? '—'}
+                  </td>
+
 
                   {/* Publisher */}
                   <td className="px-5 py-3 text-slate-400">
