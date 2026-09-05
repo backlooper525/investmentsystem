@@ -91,7 +91,7 @@ function ExpandedForecastRows({ forecasts, currency, publishers }: {
         <tr key={`forecast-${f.id}`} className="bg-slate-800">
           <td />
           <td className="px-5 py-2 text-slate-400">{formatPrice(f.predicted_price, currency)}</td>
-          <td className="px-5 py-2 text-slate-400">{f.maturation_date ?? '—'}</td>
+          <td className="whitespace-nowrap px-5 py-2 text-slate-400">{f.prediction_date ?? '—'}</td>
           <td className="px-5 py-2 text-slate-400">{f.rating ?? '—'}</td>
           <td className="px-5 py-2 text-slate-400">{f.action ?? '—'}</td>
 
@@ -549,7 +549,7 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
                   </td>
 
                   {/* Date */}
-                  <td className="px-5 py-3 text-slate-400">
+                  <td className="whitespace-nowrap px-5 py-3 text-slate-400">
                     {latestForecast?.prediction_date ?? '—'}
                   </td>
 

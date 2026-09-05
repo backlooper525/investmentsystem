@@ -1,5 +1,6 @@
 import { apiFetch } from '@/lib/api';
 import InstrumentsTable from './instrumentstable';
+import AIAnalyst from "./aianalyst";
 
 export const dynamic = 'force-dynamic';
 
@@ -69,15 +70,29 @@ export default async function DashboardPage() {
   ]);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-white">Dashboard</h1>
-        <p className="mt-1 text-sm text-slate-400">
-          Pull and view latest predictions.
-        </p>
-      </div>
+<div className="space-y-6">
+  <div className="flex items-center justify-between">
+  <div>
+    <h1 className="text-2xl font-semibold text-white">
+      Dashboard
+    </h1>
 
-      <InstrumentsTable instruments={instruments} sources={sources} forecasts={forecasts} forecast_ag={forecastAggregates} publishers={publishers} lastclose={prices} />
-    </div>
+    <p className="mt-1 text-sm text-slate-400">
+      Pull and view latest predictions.
+    </p>
+  </div>
+
+  <AIAnalyst />
+</div>
+
+  <InstrumentsTable
+    instruments={instruments}
+    sources={sources}
+    forecasts={forecasts}
+    forecast_ag={forecastAggregates}
+    publishers={publishers}
+    lastclose={prices}
+  />
+</div>
   )
 }
