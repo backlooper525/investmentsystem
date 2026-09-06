@@ -18,6 +18,14 @@ class InstrumentRepository:
     def get_by_ticker(self, session: Session, ticker: str) -> Instrument | None:
         return session.exec(select(Instrument).where(Instrument.ticker == ticker)).first()
 
+    def get_by_tickers(self, session: Session, tickers: list[str]) -> list[Instrument]:
+        if not tickers:
+            return []
+        upper_tickers = [t.upper() for t in tickers]
+        return list(
+            session.exec(select(Instrument).where(Instrument.ticker.in_(upper_tickers))).all()
+        )
+
     def delete(self, session: Session, instrument_id: int) -> bool:
         instrument = session.get(Instrument, instrument_id)
         if not instrument:

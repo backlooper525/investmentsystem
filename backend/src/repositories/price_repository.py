@@ -25,5 +25,12 @@ class PriceRepository:
             )
         ).first()
 
+    def get_latest(self, session: Session, instrument_id: int) -> Price | None:
+        return session.exec(
+            select(Price)
+            .where(Price.instrument_id == instrument_id)
+            .order_by(Price.price_date.desc())
+        ).first()
+
 
 price_repository = PriceRepository()

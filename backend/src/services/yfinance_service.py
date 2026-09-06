@@ -56,6 +56,30 @@ class YFinanceService:
 
         return results
 
+    # --- FETCH PRICE HISTORY (for charting) ---
+
+    def fetch_price_history(self, ticker: str, start: date, end: date) -> list[dict]:
+        """
+        Fetches daily closing prices for a ticker between start and end (inclusive).
+        Not persisted - used for on-the-fly chart rendering only.
+
+        Returns a list of {"date": "YYYY-MM-DD", "close": float}, chronological.
+        """
+        try:
+            hist: pd.DataFrame = yf.Ticker(ticker).history(
+                start=start,
+                end=end + timedelta(days=1),
+            )
+            if hist.empty:
+                return []
+            return [
+                {"date": idx.date().isoformat(), "close": float(row["Close"])}
+                for idx, row in hist.iterrows()
+            ]
+        except Exception as e:
+            logger.warning("Error fetching price history for %s: %s", ticker, e)
+            return []
+
     # --- FETCH REALISED PRICE ---
 
     def fetch_realised_price(self, ticker: str, target_date: date) -> float | None:

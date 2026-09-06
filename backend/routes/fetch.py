@@ -1,3 +1,5 @@
+from datetime import date
+
 from fastapi import APIRouter
 from sqlmodel import select
 
@@ -6,8 +8,17 @@ from database.session import get_session
 from src.clients.serper_client import SerperClient
 from src.models.source import Source
 from src.services.fetch_service import FetchService
+from src.services.yfinance_service import YFinanceService
 
 router = APIRouter()
+yfinance_service = YFinanceService()
+
+
+@router.get("/fetch/{ticker}/history", summary="Fetch historical daily closing prices for a ticker")
+def fetch_price_history(ticker: str, start: date, end: date | None = None):
+    end_date = end or date.today()
+    history = yfinance_service.fetch_price_history(ticker.upper(), start, end_date)
+    return {"ticker": ticker.upper(), "history": history}
 
 
 @router.get("/fetch/{ticker}")

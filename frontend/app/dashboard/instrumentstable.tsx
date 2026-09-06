@@ -303,7 +303,7 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
               value={newTicker}
               onChange={(e) => setNewTicker(e.target.value.toUpperCase())}
               placeholder="Add ticker"
-              className="text-sm px-2 py-1 rounded bg-slate-800 border border-slate-700 text-white"
+              className="text-sm px-2 py-1 rounded bg-slate-800 border border-slate-700 text-white w-20"
             />
 
             <button
@@ -339,7 +339,7 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
           <div className="w-3" />
 
 
-          <div className="relative w-40">
+          <div className="relative w-20">
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
               className={`text-sm border border-slate-700 rounded-md px-2 py-1 bg-slate-800 w-full font-mono text-left
@@ -611,6 +611,7 @@ export default function InstrumentsTable({ instruments, sources, forecasts, publ
                                 forecasts={sortedForecasts}
                                 publishers={publishers}
                                 currentPrice={latestClose?.price}
+                                ticker={instrument.ticker}
                               />
                             </div>
                           </div>

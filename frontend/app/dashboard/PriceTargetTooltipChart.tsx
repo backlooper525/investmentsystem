@@ -1,15 +1,18 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   ResponsiveContainer,
-  ScatterChart,
+  ComposedChart,
   Scatter,
+  Line,
   XAxis,
   YAxis,
   Tooltip,
   ReferenceLine,
   LabelList,
 } from "recharts";
+import { clientApiFetch } from "@/lib/api";
 
 type Forecast = {
   id: number;
@@ -24,12 +27,61 @@ type Publisher = {
   institution: string | null;
 };
 
+type PriceHistoryResponse = {
+  ticker: string;
+  history: { date: string; close: number }[];
+};
+
+type Props = {
+  forecasts: Forecast[];
+  publishers: Publisher[];
+  currentPrice: number | string | undefined;
+  ticker: string;
+};
+
 export default function PriceTargetTooltipChart({
   forecasts,
   publishers,
   currentPrice,
+  ticker,
 }: Props) {
   const current = Number(currentPrice) || 0;
+
+  const [priceSeries, setPriceSeries] = useState<{ x: number; close: number }[]>([]);
+  const [hovered, setHovered] = useState<{ point: any; cx: number; cy: number } | null>(null);
+
+  useEffect(() => {
+    if (!ticker) return;
+
+    const predictionDates = forecasts
+      .map((f) => f.prediction_date)
+      .filter((d): d is string => !!d)
+      .sort();
+
+    const start = predictionDates[0] ?? new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+    let cancelled = false;
+
+    clientApiFetch<PriceHistoryResponse>(
+      `/fetch/${ticker}/history?start=${start}`
+    )
+      .then((res) => {
+        if (cancelled) return;
+        setPriceSeries(
+          res.history.map((h) => ({
+            x: new Date(h.date).getTime(),
+            close: h.close,
+          }))
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setPriceSeries([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [ticker, forecasts]);
 
   const data = forecasts
     .filter((f) => f.predicted_price > 0 && f.prediction_date)
@@ -60,21 +112,48 @@ export default function PriceTargetTooltipChart({
     .map((f) => f.predicted_price)
     .filter((p): p is number => p != null && p > 0);
 
-  //const current = Number(currentPrice) || 0;
+  const historyPrices = priceSeries
+    .map((h) => h.close)
+    .filter((p): p is number => p != null && p > 0);
 
-  const minForecast = prices.length ? Math.min(...prices) : current;
-  const maxForecast = prices.length ? Math.max(...prices) : current;
+  const allPrices = [...prices, ...historyPrices, ...(current > 0 ? [current] : [])];
 
-  const referenceMin = Math.min(minForecast, current);
-  const buffer = referenceMin * 0.05;
+  const minPrice = allPrices.length ? Math.min(...allPrices) : current;
+  const maxPrice = allPrices.length ? Math.max(...allPrices) : current;
 
-  const yMin = Math.max(0, referenceMin - buffer);
-  const yMax = maxForecast * 1.05;
+  // Round the axis bounds to a "nice" step (1/2/5 x a power of ten) so the
+  // gridlines land on round numbers instead of whatever minPrice*0.95 works out to.
+  const niceStep = (rawRange: number) => {
+    const roughStep = rawRange / 5;
+    const magnitude = Math.pow(10, Math.floor(Math.log10(roughStep || 1)));
+    const residual = roughStep / magnitude;
+    if (residual > 5) return 10 * magnitude;
+    if (residual > 2) return 5 * magnitude;
+    if (residual > 1) return 2 * magnitude;
+    return magnitude;
+  };
+
+  const rawMin = Math.max(0, minPrice - minPrice * 0.05);
+  const rawMax = maxPrice * 1.05;
+  const step = niceStep(Math.max(rawMax - rawMin, 1e-6));
+
+  const yMin = Math.max(0, Math.floor(rawMin / step) * step);
+  const yMax = Math.ceil(rawMax / step) * step;
+
+  const yTicks: number[] = [];
+  for (let v = yMin; v <= yMax + step / 2; v += step) {
+    yTicks.push(Number(v.toFixed(6)));
+  }
+
+  const allX = [...data.map((d) => d.x), ...priceSeries.map((h) => h.x)];
+  const xDomain: [number, number] | undefined = allX.length
+    ? [Math.min(...allX), Math.max(...allX)]
+    : undefined;
 
   return (
-    <div className="w-[800px] h-[520px]">
+    <div className="relative w-[800px] h-[520px]">
       <ResponsiveContainer width="100%" height="100%">
-        <ScatterChart
+        <ComposedChart
           margin={{
             top: 20,
             right: 120,
@@ -85,7 +164,7 @@ export default function PriceTargetTooltipChart({
           <XAxis
             dataKey="x"
             type="number"
-            domain={["dataMin", "dataMax"]}
+            domain={xDomain ?? ["dataMin", "dataMax"]}
             scale="time"
             ticks={[...new Set(data.map((d) => d.x))]}
             tickFormatter={(v) =>
@@ -99,6 +178,8 @@ export default function PriceTargetTooltipChart({
           <YAxis
             type="number"
             domain={[yMin, yMax]}
+            ticks={yTicks}
+            tickFormatter={(v) => v.toFixed(2)}
             tick={{ fontSize: 11 }}
           />
 
@@ -118,82 +199,43 @@ export default function PriceTargetTooltipChart({
 
           <Tooltip
             content={({ active, payload }) => {
+              // The forecast dots have their own hover-driven tooltip below,
+              // rendered manually — Recharts' shared nearest-point lookup
+              // isn't reliable once a dense Line shares the axis with a
+              // sparse Scatter, so don't let this one fight with that.
+              if (hovered) return null;
               if (!active || !payload?.length) return null;
 
-              const d = payload[0].payload;
+              const priceEntry = payload.find((p) => p.dataKey === "close");
+              if (!priceEntry) return null;
 
+              const p = priceEntry.payload;
               return (
-                <div className="min-w-[230px] rounded-lg border border-slate-700 bg-slate-950 p-3 text-xs shadow-xl">
-                  {/* Publisher */}
-                  <div className="mb-3 font-semibold text-white">
-                    {d.publisher}
+                <div className="min-w-[160px] rounded-lg border border-slate-700 bg-slate-950 p-3 text-xs shadow-xl">
+                  <div className="flex justify-between gap-6">
+                    <span className="text-slate-400">Price</span>
+                    <span className="font-medium text-white">
+                      {Number(p.close).toFixed(2)}
+                    </span>
                   </div>
-
-                  {/* Price */}
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between gap-6">
-                      <span className="text-slate-400">Target</span>
-                      <span className="font-medium text-white">
-                        {d.y.toFixed(2)}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between gap-6">
-                      <span className="text-slate-400">Current</span>
-                      <span className="text-white">
-                        {current.toFixed(2) ?? "—"}
-                      </span>
-                    </div>
-
-                    {/* Upside */}
-                    <div className="flex justify-between gap-6">
-                      <span className="text-slate-400">Upside</span>
-                      <span
-                        className={
-                          d.upside != null && d.upside >= 0
-                            ? "font-semibold text-emerald-400"
-                            : "font-semibold text-red-400"
-                        }
-                      >
-                        {d.upside != null
-                          ? `${d.upside >= 0 ? "+" : ""}${d.upside.toFixed(1)}%`
-                          : "—"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Ratings */}
-                  <div className="mt-3 border-t border-slate-800 pt-3 space-y-1.5">
-                    <div className="flex justify-between gap-6">
-                      <span className="text-slate-400">Rating</span>
-                      <span className="font-medium text-white">
-                        {d.rating ?? "—"}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between gap-6">
-                      <span className="text-slate-400">Previous</span>
-                      <span className="text-slate-300">
-                        {d.prev_rating ?? "—"}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between gap-6">
-                      <span className="text-slate-400">Action</span>
-                      <span className="font-medium text-white">
-                        {d.action ?? "—"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Date */}
-                  <div className="mt-3 border-t border-slate-800 pt-2 text-slate-500">
-                    Published {d.prediction_date}
+                  <div className="mt-1 text-slate-500">
+                    {new Date(p.x).toISOString().slice(0, 10)}
                   </div>
                 </div>
               );
             }}
           />
+
+            <Line
+              data={priceSeries}
+              type="monotone"
+              dataKey="close"
+              stroke="#38bdf8"
+              strokeWidth={2}
+              dot={false}
+              isAnimationActive={false}
+              name="Price"
+            />
 
             <Scatter
               data={data}
@@ -225,6 +267,9 @@ export default function PriceTargetTooltipChart({
                     fill={fill}
                     stroke="#fff"
                     strokeWidth={1}
+                    style={{ cursor: "pointer" }}
+                    onMouseEnter={() => setHovered({ point: payload, cx, cy })}
+                    onMouseLeave={() => setHovered(null)}
                   />
                 );
               }}
@@ -235,8 +280,98 @@ export default function PriceTargetTooltipChart({
                 fontSize={10}
               />
             </Scatter>
-        </ScatterChart>
+        </ComposedChart>
       </ResponsiveContainer>
+
+      {hovered && (
+        <>
+          <div
+            className="pointer-events-none absolute top-0 bottom-0 border-l border-dashed border-slate-400/50"
+            style={{ left: hovered.cx }}
+          />
+          <div
+            className="pointer-events-none absolute left-0 right-0 border-t border-dashed border-slate-400/50"
+            style={{ top: hovered.cy }}
+          />
+        </>
+      )}
+
+      {hovered && (
+        <div
+          className="pointer-events-none absolute z-10 min-w-[230px] rounded-lg border border-slate-700 bg-slate-950 p-3 text-xs shadow-xl"
+          style={{
+            left: hovered.cx + 14,
+            top: hovered.cy - 10,
+          }}
+        >
+          {/* Publisher */}
+          <div className="mb-3 font-semibold text-white">
+            {hovered.point.publisher}
+          </div>
+
+          {/* Price */}
+          <div className="space-y-1.5">
+            <div className="flex justify-between gap-6">
+              <span className="text-slate-400">Target</span>
+              <span className="font-medium text-white">
+                {hovered.point.y.toFixed(2)}
+              </span>
+            </div>
+
+            <div className="flex justify-between gap-6">
+              <span className="text-slate-400">Current</span>
+              <span className="text-white">
+                {current.toFixed(2) ?? "—"}
+              </span>
+            </div>
+
+            {/* Upside */}
+            <div className="flex justify-between gap-6">
+              <span className="text-slate-400">Upside</span>
+              <span
+                className={
+                  hovered.point.upside != null && hovered.point.upside >= 0
+                    ? "font-semibold text-emerald-400"
+                    : "font-semibold text-red-400"
+                }
+              >
+                {hovered.point.upside != null
+                  ? `${hovered.point.upside >= 0 ? "+" : ""}${hovered.point.upside.toFixed(1)}%`
+                  : "—"}
+              </span>
+            </div>
+          </div>
+
+          {/* Ratings */}
+          <div className="mt-3 border-t border-slate-800 pt-3 space-y-1.5">
+            <div className="flex justify-between gap-6">
+              <span className="text-slate-400">Rating</span>
+              <span className="font-medium text-white">
+                {hovered.point.rating ?? "—"}
+              </span>
+            </div>
+
+            <div className="flex justify-between gap-6">
+              <span className="text-slate-400">Previous</span>
+              <span className="text-slate-300">
+                {hovered.point.prev_rating ?? "—"}
+              </span>
+            </div>
+
+            <div className="flex justify-between gap-6">
+              <span className="text-slate-400">Action</span>
+              <span className="font-medium text-white">
+                {hovered.point.action ?? "—"}
+              </span>
+            </div>
+          </div>
+
+          {/* Date */}
+          <div className="mt-3 border-t border-slate-800 pt-2 text-slate-500">
+            Published {hovered.point.prediction_date}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

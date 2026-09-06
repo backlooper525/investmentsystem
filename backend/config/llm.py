@@ -21,6 +21,10 @@ class LLMSettings(BaseSettings):
     llm_provider_extraction: str = ""
     llm_model_extraction: str = ""
 
+    # AI Analyst: interactive chat in the dashboard
+    llm_provider_ai_analyst: str = ""
+    llm_model_ai_analyst: str = ""
+
     # Provider API keys
     openai_api_key: str = ""
     anthropic_api_key: str = ""

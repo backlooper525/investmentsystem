@@ -74,7 +74,7 @@ export default async function DashboardPage() {
   <div className="flex items-center justify-between">
   <div>
     <h1 className="text-2xl font-semibold text-white">
-      Dashboard
+      Watchlist
     </h1>
 
     <p className="mt-1 text-sm text-slate-400">

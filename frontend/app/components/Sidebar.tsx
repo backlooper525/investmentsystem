@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
+  Home,
   LayoutDashboard,
   PlusCircle,
   ClipboardList,
@@ -10,6 +11,7 @@ import {
 } from 'lucide-react';
 
 const navItems = [
+  { href: '/', label: 'Home', icon: Home },
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/new-entry', label: 'New Entry', icon: PlusCircle },
   { href: '/analytics', label: 'Analytics', icon: BarChart2 },

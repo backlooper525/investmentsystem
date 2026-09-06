@@ -13,6 +13,7 @@ import logging
 from database.engine import engine, ping_db
 from exceptions import register_exception_handlers
 from routes import (
+    ai_analyst,
     analytics,
     forecasts,
     ingest,
@@ -68,4 +69,5 @@ app.include_router(instruments.router, tags=["Instruments"])
 app.include_router(instrument_classes.router, tags=["Instrument Classes"])
 app.include_router(fetch.router, tags=["Fetch"])
 app.include_router(publishers.router, tags=["Publishers"])
+app.include_router(ai_analyst.router, tags=["AI Analyst"])
 
